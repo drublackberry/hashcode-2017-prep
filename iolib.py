@@ -22,7 +22,7 @@ def read_input(fname):
         V, L, R = lines[idx]
         coords = np.asarray(lines[idx:idx + L])
         tranges = np.asarray(lines[idx + L:idx + L + R])
-        imgrecords.append((coords, tranges))
+        imgrecords.append((V, coords, tranges))
         idx += L + R + 1
     data["sats"] = sats
     data["collections"] = imgrecords
