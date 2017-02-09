@@ -11,8 +11,6 @@ import pandas as pd
 T = 250000 # REPLACE BY IO SIMULATION TIME
 
 
-
-
 class Collection:
     ''' Class that encapsulates a collection of images given by the targets to 
     be acquired and the cost associated to all the collection
@@ -65,6 +63,9 @@ class Satellite:
             else:
                 lat_vec[t+1] = new_lat
                 lon_vec[t+1] = new_lon
+            if lon_vec[t+1] < -648000:
+                lon_vec[t+1] = 648000 + (lon_vec[t+1]+648000)
+           
         self.pointing = pd.DataFrame(index=range(T), columns=['lat', 'lon'])                    
         self.pointing['lat'] = lat_vec
         self.pointing['lon'] = lon_vec
@@ -81,11 +82,12 @@ class MissionTimeline:
     def __init__ (self):
         pass
     
-v = 400
+v = -1000
 w = 16
 d = 4000
 
-s = Satellite(1, 0, 0, 4, 15, 100)
-print s.pointing
+s = Satellite(0, -320000, 0, v, w, d)
+print(s.pointing['lat'])
+print(s.pointing['lon'])
     
         
