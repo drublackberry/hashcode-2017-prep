@@ -1,6 +1,32 @@
 #!/usr/bin/env python
 
 import numpy as np
+from pandas import DataFrame
+import os
+
+
+class Scenario(object):
+
+    def __init__(self, data):
+        self.T = data["T"]
+        self.sats = DataFrame(data=data["sats"], columns=["lat0", "lon0", "v0", "w", "d"])
+        self.collections = []
+        for c in data["collections"]:
+            self.collections.append({"value": c[0],
+                                     "coords": DataFrame(data=c[1], columns=["lat", "lon"]),
+                                     "trange": DataFrame(data=c[2], columns=["tmin", "tmax"])})
+
+
+def read_scenario(fname):
+    """
+    Pretty wrapper around read_input().
+    """
+
+    return Scenario(read_input(fname))
+
+
+def read_all_scenarios(basedir):
+    return {f: read_scenario(os.path.join(basedir, f) for f in os.listdir(basedir))}
 
 
 def read_input(fname):
