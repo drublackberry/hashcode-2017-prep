@@ -29,5 +29,13 @@ def read_input(fname):
     return data
 
 
+def write_output(fname, photographs):
+    P = len(photographs)
+    with open(fname, 'w') as fp:
+        fp.write("%d\n", P)
+        for p in P:
+            fp.write("%d %d %d %d\n" % p)
+
+
 if __name__ == "__main__":
     a = read_input("final_round_2016.in/weekend.in")
