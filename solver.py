@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import iolib as io
 import matplotlib.pyplot as plt
-    
+
 
 class TargetBoard:
     '''Class that contains all the targets with the scores 
@@ -19,12 +19,12 @@ class TargetBoard:
         pass
     
     
-    def computeFromCollectionArray(self, aCA, aPickle=''):
+    def compute_from_collection_array(self, collection_array, in_pickle=''):
         ''' Computes a target board table using the collections inside'''
         print 'Computing target board from collections'
-        if aPickle=='':
+        if in_pickle=='':
             out_df = pd.DataFrame(columns=['tmin', 'tmax', 'lat', 'lon', 'score', 'rel_score'])
-            for collec in aCA.collections:
+            for collec in collection_array.collections:
                 for time_ind in collec.trange.index:
                     temp_df = collec.coords.copy()
                     temp_df['score'] = [collec.value]*len(temp_df)
@@ -36,8 +36,20 @@ class TargetBoard:
             out_df.__delitem__('index')
         else:
             print '-> pickle found: using pickle instead'
-            out_df = pd.read_pickle(aPickle)
+            out_df = pd.read_pickle(in_pickle)
         self.board = out_df
+        
+    def compute_opportunity_cost (self, in_vis):
+        ''' Adds the opportunity cost of using a certain satellite at a certain 
+        time by checking which potential is there in using such satellite
+        '''
+        # Merge the target board with the visibility with time
+        in_vis['max_lat'] = in_vis['lat'] + in_vis['d']
+        in_vis['min_lat'] = in_vis['lat'] - in_vis['d']
+        in_vis['max_lon'] = in_vis['lon'] + in_vis['d']
+        in_vis['min_lon'] = in_vis['lon'] - in_vis['d']
+        out_df = in_vis[['sat_id', 'max_lat', 'min_lat', 'max_lon', 'min_lon', 'time']]
+        
                 
             
 
@@ -47,13 +59,13 @@ class CollectionArray:
     def __init__  (self):
         pass
     
-    def loadFromScenario (self, aScenario):
+    def load_from_scenario (self, scenario):
         self.collections = []
-        for c in aScenario.collections:
-            myCollection = Collection(c['value'], c['coords'], c['trange'])
-            self.collections.append(myCollection)
+        for c in scenario.collections:
+            my_collection = Collection(c['value'], c['coords'], c['trange'])
+            self.collections.append(my_collection)
                 
-    def orderByScore(self):
+    def order_by_score(self):
         ''' Order the collections by max(score),  min(num_targets)
         '''
         scores = np.array([])
@@ -69,11 +81,11 @@ class CollectionArray:
         return df['index']
 
 
-    def computeTargetBoard(self, aPickle=''):
+    def compute_target_board(self, in_pickle=''):
         ''' Computes a target board table using the collections inside'''
         print 'Computing target board from collections'
-        if not(aPickle==''):
-            out_df = pd.read_pickle(aPickle)
+        if not(in_pickle==''):
+            out_df = pd.read_pickle(in_pickle)
             print '-> pickle found. Using pickle instead'
             return out_df
         out_df = pd.DataFrame(columns=['tmin', 'tmax', 'lat', 'lon', 'score', 'rel_score'])
@@ -98,7 +110,7 @@ class Collection:
         self.coords = coords
         self.trange = trange
         
-    def printStatus (self):
+    def print_status (self):
         print 'Collection'
         print ' Value = ' + str(self.value) + ', ' + \
               str(len(self.coords)) + ' targets, ' + \
@@ -111,37 +123,28 @@ class Target:
         self.coords = coords
         self.trange = trange 
         
-    def printStatus (self):
+    def print_status (self):
         print 'Target'
         print self.coords 
         print self.trange
         
-    def determineVisibility(self, aConstellation, aTargetBoard):
+    def determine_visibility(self, in_constellation):
         ''' Given a constellation checks which satellites can actually see 
         the target at the time number of time slots 
+        Returns a dataframe with id, lat, lon, time
         '''
-        out_df = pd.DataFrame(columns=['trange', 'sat_id', 'tmin', 'tmax'])
+        out_df = pd.DataFrame(columns=['sat_id', 'lat', 'lon', 'time', 'd'])
         # For each time range check which satellites can see it
         for time_ind in self.trange.index:
-            df = aConstellation.filterByTimeRange(self.trange.loc[time_ind])
+            df = in_constellation.filter_by_time_range(self.trange.loc[time_ind])
             # merge with d to get the maximum FOV
-            df = df.merge(aConstellation.satellites[['sat_id', 'd']], on='sat_id')
+            df = df.merge(in_constellation.satellites[['sat_id', 'd']], on='sat_id')
             # Check the condition of lat-lon
-            df = df[df['lat']+df['d'] >= myTarget.coords.lat]
-            df = df[df['lat']-df['d'] <= myTarget.coords.lat]
-            df = df[df['lon']+df['d'] >= myTarget.coords.lon]
-            df = df[df['lon']-df['d'] <= myTarget.coords.lon]
-            # If the dataframe is empty, then the target cannot be seen and
-            # whole collection should be dropped
-            if df.empty:
-                return out_df
-            # Check which targets are seen at each time and lat/lon
-            # TODO HERE: to a merge such as tmin < time < tmax AND
-            # sat_lat -d < lat < sat_lat + d AND
-            # sat_lon -d < lon < sat_lon +d
-            # Including the time conditio of w/d
-            
-            
+            df = df[df['lat']+df['d'] >= self.coords.lat]
+            df = df[df['lat']-df['d'] <= self.coords.lat]
+            df = df[df['lon']+df['d'] >= self.coords.lon]
+            df = df[df['lon']-df['d'] <= self.coords.lon]
+            out_df = out_df.append(df[['sat_id', 'lat', 'lon', 'time', 'd']])
         return out_df
 
                     
@@ -153,27 +156,27 @@ class Constellation:
         pass
     
     
-    def loadFromScenario (self, aScenario, aPickle=''):
+    def load_from_scenario (self, in_scenario, in_pickle=''):
         ''' Loads a constellation from the scenario
         '''
         
-        print 'Loading ephemeris for ' + str(len(aScenario.sats))  + ' satellites'
+        print 'Loading ephemeris for ' + str(len(in_scenario.sats))  + ' satellites'
         self.satellites = pd.DataFrame(columns=['sat_id', 'w', 'd'])
         self.fixed_pointing = pd.DataFrame(columns=['sat_id', 'time', 'lat', 'lon'])
-        if aPickle == '':
+        if in_pickle == '':
             self.ephemeris = pd.DataFrame(columns=['sat_id', 'time', 'lat', 'lon'])
-            for sat_ind in aScenario.sats.index:
-                mySatellite = Satellite (sat_ind, aScenario.sats.loc[sat_ind])
+            for sat_ind in in_scenario.sats.index:
+                mySatellite = Satellite (sat_ind, in_scenario.sats.loc[sat_ind])
                 self.ephemeris = self.ephemeris.append(mySatellite.orbit)
         else:
             print '-> pickle found: using precomputed ephemeris'
-            self.ephemeris = pd.read_pickle(aPickle)
-        self.satellites = aScenario.sats[['w', 'd']].reset_index()
+            self.ephemeris = pd.read_pickle(in_pickle)
+        self.satellites = in_scenario.sats[['w', 'd']].reset_index()
         self.satellites.rename(columns={'index':'sat_id'}, inplace=True)
         
-    def filterByTimeRange (self, aTrange):
-        df = self.ephemeris[self.ephemeris['time']>= aTrange['tmin']]
-        df = df[df['time']<=aTrange['tmax']]
+    def filter_by_time_range (self, in_trange):
+        df = self.ephemeris[self.ephemeris['time']>= in_trange['tmin']]
+        df = df[df['time']<=in_trange['tmax']]
         return df
         
         
@@ -188,26 +191,26 @@ class Satellite:
     ''' Class that encapsulates the pointing of the satellite 
     '''
     
-    def __init__ (self, aId, aSatDescr):
-        self.ID = aId
-        self.initLat = aSatDescr['lat0']
-        self.initLon = aSatDescr['lon0']
-        self.v = aSatDescr['v0']
-        self.w = aSatDescr['w']
-        self.d = aSatDescr['d']
+    def __init__ (self, in_Id, in_sat_descr):
+        self.id = in_Id
+        self.init_lat = in_sat_descr['lat0']
+        self.init_lon = in_sat_descr['lon0']
+        self.v = in_sat_descr['v0']
+        self.w = in_sat_descr['w']
+        self.d = in_sat_descr['d']
         ''' propagate the trajectory of the satellite '''
-        self.propagateOrbit()
+        self.propagate_orbit()
 
 
-    def propagateOrbit(self):
+    def propagate_orbit(self):
         ''' Propagate the default pointing of the satellite given the
         initial conditions
         '''  
         print "Propagating orbit of satellite " + str(self.ID)
         lat_vec = np.zeros((T,1))
         lon_vec = np.zeros((T,1))
-        lat_vec[0] = self.initLat
-        lon_vec[0] = self.initLon
+        lat_vec[0] = self.init_lat
+        lon_vec[0] = self.init_lon
         v = self.v
         for t in range(T-1):
             # propagation is at t+1
@@ -231,43 +234,46 @@ class Satellite:
         self.orbit['lat'] = lat_vec
         self.orbit['lon'] = lon_vec
         self.orbit['time'] = range(T)
-        self.orbit['sat_id'] = [self.ID]*T
+        self.orbit['sat_id'] = [self.id]*T
 
         
         
     
 # Read scenario
-myScenario = io.read_scenario('final_round_2016.in/weekend.in')
+scenario = io.read_scenario('final_round_2016.in/weekend.in')
 # Load the time
-T = myScenario.T
+T = scenario.T
 
 # Load the constellation
-myConstellation = Constellation()
-myConstellation.loadFromScenario(myScenario, aPickle='ephemeris.pickle')
-#myConstellation.plot([0.0, 1.0, 2.0, 39.0])
+constellation = Constellation()
+constellation.load_from_scenario(scenario, in_pickle='ephemeris.pickle')
+#constellation.plot([0.0, 1.0, 2.0, 39.0])
 
 # Load the collection and acquire smartly
-myCollectionArray = CollectionArray()
-myCollectionArray.loadFromScenario(myScenario)
+collection_array = CollectionArray()
+collection_array.load_from_scenario(scenario)
 
-myTargetBoard = TargetBoard()
-myTargetBoard.computeFromCollectionArray(myCollectionArray, aPickle='target_board.pickle')
+target_board = TargetBoard()
+target_board.compute_from_collection_array(collection_array, in_pickle='target_board.pickle')
 
-myCollectionOrder = myCollectionArray.orderByScore()
-for coll_ind in myCollectionOrder:
-    myCollection = myCollectionArray.collections[coll_ind]
-    myCollection.printStatus()
+collection_order = collection_array.order_by_score()
+for coll_ind in collection_order:
+    collection = collection_array.collections[coll_ind]
+    collection.print_status()
     kill_collection = False
     # Loop over the targets inside the collection
-    for target_ind in myCollection.coords.index:
+    for target_ind in collection.coords.index:
         if not(kill_collection):
-            myTarget = Target(myCollection.coords.loc[target_ind],  myCollection.trange)
+            target = Target(collection.coords.loc[target_ind],  collection.trange)
             # Check which satellites can see the current target
-            mySatVis = myTarget.determineVisibility(myConstellation, myTargetBoard)
-            if mySatVis.dropna().empty:
+            sat_vis = target.determine_visibility(constellation)
+            if sat_vis.dropna().empty:
                 # If target cannot be acquired, drop the collection
                 print 'Target not acquirable, killing collection search'
                 kill_collection = True
+            # Check how much do we lose by using the satellite
+            sat_vis_with_cost = target_board.compute_opportunity_cost(sat_vis)
+            
             
             
     
