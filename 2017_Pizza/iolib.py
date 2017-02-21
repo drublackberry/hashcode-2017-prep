@@ -24,6 +24,35 @@ def write_solution(slices, outfile):
             fp.write("%d %d %d %d\n" % (sl.r_min, sl.r_max, sl.c_min, sl.c_max))
 
 
+def verify_solution(pizza_dict, slices):
+    L = pizza_dict['L']
+    H = pizza_dict['H']
+
+    sizes = np.asarray([slice_size(sl) for sl in slices])
+    tomatoes = np.asarray([np.count_nonzero(sl) for sl in slices])
+    shrooms = sizes - tomatoes
+
+    oversize = np.any(sizes > H)
+    lack_tomatoes = np.any(tomatoes < L)
+    lack_shrooms = np.any(shrooms < L)
+
+    if oversize:
+        raise RuntimeError("Oversized slices!")
+    if lack_tomatoes:
+        raise RuntimeError("Not enough tomatoes!")
+    if lack_shrooms:
+        raise RuntimeError("Not enough shrooms!")
+
+    return True
+
+
+def slice_size(sl):
+    return abs((sl.r_max - sl.r_min) + 1) * abs((sl.c_max - sl.c_min) + 1)
+
+
+
+
+
 if __name__ == "__main__":
     # Test
     #print(get_pizza_df("small"))
