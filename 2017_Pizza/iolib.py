@@ -46,13 +46,12 @@ def verify_solution(pizza_dict, slices):
     return True
 
 
+def read_solution(fname):
+    S = np.genfromtxt(fname, max_rows=1, dtype=np.uint64)
+    slices = np.genfromtxt(fname, skip_header=1, dtype=np.uint64)
+    slices = pd.DataFrame(slices, columns=["r_min", "r_max", "c_min", "c_max"])
+    return slices
+
+
 def slice_size(sl):
     return abs((sl.r_max - sl.r_min) + 1) * abs((sl.c_max - sl.c_min) + 1)
-
-
-
-
-
-if __name__ == "__main__":
-    # Test
-    #print(get_pizza_df("small"))
