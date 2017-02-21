@@ -16,6 +16,14 @@ def get_pizza_df(scen):
     df = pd.DataFrame(data2)
     return {'pizza': df, 'L': L, 'H': H, 'source': fname}
 
+
+def write_solution(slices, outfile):
+    with open(outfile, 'w') as fp:
+        fp.write("%d\n" % len(slices))
+        for sl in slices:
+            fp.write("%d %d %d %d\n" % (sl.r_min, sl.r_max, sl.c_min, sl.c_max))
+
+
 if __name__ == "__main__":
     # Test
-    print(get_pizza_df("small"))
+    #print(get_pizza_df("small"))
