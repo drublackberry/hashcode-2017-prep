@@ -12,7 +12,11 @@ import iolib as iolib
 class PizzaBoard:
     
     def __init__ (self):
-        pass
+        self.moves = {}
+        self.moves['ur'] = pd.read_excel('moves.xlsx', sheetname='up_right')     
+        self.moves['ul'] = pd.read_excel('moves.xlsx', sheetname='up_left')     
+        self.moves['ll'] = pd.read_excel('moves.xlsx', sheetname='low_left')     
+        self.moves['lr'] = pd.read_excel('moves.xlsx', sheetname='low_right')     
     
     def load_from_scenario (self, scenario_in):
         dict_in = iolib.get_pizza_df(scenario_in)
@@ -48,20 +52,20 @@ class PizzaBoard:
         else:
             return False
         
-    def get_min_slice (self, i, j, origin='center'):
-        if origin == 'center':
-            step_d = self.L
+    def get_slice (self, i, j, origin='ul'):
+        if origin == 'ul':
+            step_d = np.sqrt(self.L)
             # start growing from here
             while i+step_d <= self.pizza.shape[0] and j+step_d <= self.pizza.shape[1]:
-                slice_out = self.pizza.loc[i:i+step_d, j:j+step_d]
+                slice_out = self.pizza.loc[i:i+step_d, j]
                 if self.__check_slice_valid (slice_out):
                     return slice_out
                 else:
                     step_d = step_d + 1 # increment naively
               
 board = PizzaBoard()
-board.load_from_scenario('small')
+board.load_from_scenario('big')
 board.get_pizza_report()
 #board.display_pizza()
-board.get_min_slice(4,4)
+x = board.get_slice(4,4)
         
