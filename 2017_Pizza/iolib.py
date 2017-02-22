@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 def get_pizza_df(scen):
-    fname = os.path.join(".", scen + ".in")
+    fname = os.path.join(".", "scenarios", scen + ".in")
     R, C, L, H = np.genfromtxt(fname, max_rows=1, dtype=np.int64)
     print(R, C, L, H)
     data = np.genfromtxt(fname, skip_header=1,
