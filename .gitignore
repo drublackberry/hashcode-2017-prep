@@ -1,0 +1,15 @@
+# Emacs temp files
+*.py~
+
+# Compiled Python bytecode files
+*.pyc
+
+# Some other weird temp files
+*\#
+
+# Generated plots
+*.png
+*.jpg
+
+# zip archives
+*.zip
